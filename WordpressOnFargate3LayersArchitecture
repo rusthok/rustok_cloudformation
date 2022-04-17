@@ -803,7 +803,7 @@
         Ref: "DBPrivateSubnet2b"
       Export:
         Name: !Sub "${AWS::Region}-${AWS::StackName}-DBPrivateSubnet2b"
-	
+    
     DefaultSecurityGroup:
       Description: "DefaultSecurityGroup Id"
       Value: !GetAtt VPC.DefaultSecurityGroup
