@@ -1,0 +1,4 @@
+jobs:
+  deploy:
+    name: Deploy to AWS
+    runs-on:
