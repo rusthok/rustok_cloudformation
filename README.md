@@ -1,0 +1,2 @@
+# rustok_cloudformation
+cloudformationStacks
