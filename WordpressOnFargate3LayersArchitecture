@@ -5,7 +5,7 @@
     VPCwordpress:
       Description: The name of the VPC being created.
       Type: String
-      #Default: "Wordpress on Fargate base infrastructure"
+      #Default: "Wordpress on Fargate base infrastructure" #testing git
       Default: "Wordpress on Fargate"
 
   Mappings:
