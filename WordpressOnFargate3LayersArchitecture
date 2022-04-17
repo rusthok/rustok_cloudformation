@@ -1,1 +1,844 @@
+  AWSTemplateFormatVersion: "2010-09-09"
 
+  Description: "Creates a VPC with Managed NAT, a RDS MySQL instance, an ALB, and an EFS filesystem)"
+  Parameters:
+    VPCwordpress:
+      Description: The name of the VPC being created.
+      Type: String
+      #Default: "Wordpress on Fargate base infrastructure"
+      Default: "Wordpress on Fargate"
+
+  Mappings:
+    SubnetConfig:
+      VPC-mapping:
+        CIDR: "10.0.0.0/16"
+      Publicsubnet1-a-mapping:
+        CIDR: "10.0.0.0/24"
+      Publicsubnet2-b-mapping:
+        CIDR: "10.0.1.0/24"
+      wordpressprivatesubnet1-a-mapping:
+        CIDR: "10.0.2.0/24"
+      wordpressprivatesubnet2-b-mapping:
+        CIDR: "10.0.3.0/24"
+      DBprivatesubnet1-a-mapping:
+        CIDR: "10.0.4.0/24"
+      DBprivatesubnet2-b-mapping:
+        CIDR: "10.0.5.0/24"
+        
+    AZRegions:
+      us-east-1:
+        AZs: ["a", "b"]
+
+  Resources:
+    VPC:
+      Type: "AWS::EC2::VPC"
+      Properties:
+        EnableDnsSupport: "true"
+        EnableDnsHostnames: "true"
+        CidrBlock:
+          Fn::FindInMap:
+            - "SubnetConfig"
+            - "VPC-mapping"
+            - "CIDR"
+        Tags:
+          -
+            Key: "Application"
+            Value:
+              Ref: "AWS::StackName"
+          -
+            Key: "Network"
+            Value: "Public"
+          -
+            Key: "Name"
+            Value: !Ref 'VPCwordpress'
+
+    PublicSubnet1a:
+      Type: "AWS::EC2::Subnet"
+      Properties:
+        VpcId:
+          Ref: "VPC"
+        AvailabilityZone:
+          Fn::Sub:
+            - "${AWS::Region}${AZ}"
+            - AZ: !Select [ 0, !FindInMap [ "AZRegions", !Ref "AWS::Region", "AZs" ] ]
+        CidrBlock:
+          Fn::FindInMap:
+            - "SubnetConfig"
+            - "Publicsubnet1-a-mapping"
+            - "CIDR"
+        MapPublicIpOnLaunch: "true"
+        Tags:
+          -
+            Key: "Application"
+            Value:
+              Ref: "AWS::StackName"
+          -
+            Key: "Network"
+            Value: "Public"
+          -
+            Key: "Name"
+            Value: !Join
+              - ''
+              - - !Ref "VPCwordpress"
+                - '-public-'
+                - !Select [ 0, !FindInMap [ "AZRegions", !Ref "AWS::Region", "AZs" ] ]
+
+    PublicSubnet2b:
+      Type: "AWS::EC2::Subnet"
+      Properties:
+        VpcId:
+          Ref: "VPC"
+        AvailabilityZone:
+          Fn::Sub:
+            - "${AWS::Region}${AZ}"
+            - AZ: !Select [ 1, !FindInMap [ "AZRegions", !Ref "AWS::Region", "AZs" ] ]
+        CidrBlock:
+          Fn::FindInMap:
+            - "SubnetConfig"
+            - "Publicsubnet2-b-mapping"
+            - "CIDR"
+        MapPublicIpOnLaunch: "true"
+        Tags:
+          -
+            Key: "Application"
+            Value:
+              Ref: "AWS::StackName"
+          -
+            Key: "Network"
+            Value: "Public"
+          -
+            Key: "Name"
+            Value: !Join
+              - ''
+              - - !Ref "VPCwordpress"
+                - '-public-'
+                - !Select [ 1, !FindInMap [ "AZRegions", !Ref "AWS::Region", "AZs" ] ]
+
+    WordpressPrivateSubnet1a:
+      Type: "AWS::EC2::Subnet"
+      Properties:
+        VpcId:
+          Ref: "VPC"
+        AvailabilityZone:
+          Fn::Sub:
+            - "${AWS::Region}${AZ}"
+            - AZ: !Select [ 0, !FindInMap [ "AZRegions", !Ref "AWS::Region", "AZs" ] ]
+        CidrBlock:
+          Fn::FindInMap:
+            - "SubnetConfig"
+            - "wordpressprivatesubnet1-a-mapping"
+            - "CIDR"
+        Tags:
+          -
+            Key: "Application"
+            Value:
+              Ref: "AWS::StackName"
+          -
+            Key: "Network"
+            Value: "Private"
+          -
+            Key: "Name"
+            Value: !Join
+              - ''
+              - - !Ref "VPCwordpress"
+                - '-private-'
+                - !Select [ 0, !FindInMap [ "AZRegions", !Ref "AWS::Region", "AZs" ] ]
+
+    WordpressPrivateSubnet2b:
+      Type: "AWS::EC2::Subnet"
+      Properties:
+        VpcId:
+          Ref: "VPC"
+        AvailabilityZone:
+          Fn::Sub:
+            - "${AWS::Region}${AZ}"
+            - AZ: !Select [ 1, !FindInMap [ "AZRegions", !Ref "AWS::Region", "AZs" ] ]
+        CidrBlock:
+          Fn::FindInMap:
+            - "SubnetConfig"
+            - "wordpressprivatesubnet2-b-mapping"
+            - "CIDR"
+        Tags:
+          -
+            Key: "Application"
+            Value:
+              Ref: "AWS::StackName"
+          -
+            Key: "Network"
+            Value: "Private"
+          -
+            Key: "Name"
+            Value: !Join
+              - ''
+              - - !Ref "VPCwordpress"
+                - '-private-'
+                - !Select [ 1, !FindInMap [ "AZRegions", !Ref "AWS::Region", "AZs" ] ]
+                
+    DBPrivateSubnet1a:  
+      Type: "AWS::EC2::Subnet"
+      Properties:
+        VpcId:
+          Ref: "VPC"
+        AvailabilityZone:
+          Fn::Sub:
+            - "${AWS::Region}${AZ}"
+            - AZ: !Select [ 0, !FindInMap [ "AZRegions", !Ref "AWS::Region", "AZs" ] ]
+        CidrBlock:
+          Fn::FindInMap:
+            - "SubnetConfig"
+            - "DBprivatesubnet1-a-mapping"
+            - "CIDR"
+        Tags:
+          -
+            Key: "Application"
+            Value:
+              Ref: "AWS::StackName"
+          -
+            Key: "Network"
+            Value: "Private"
+          -
+            Key: "Name"
+            Value: !Join
+              - ''
+              - - !Ref "VPCwordpress"
+                - '-private-'
+                - !Select [ 0, !FindInMap [ "AZRegions", !Ref "AWS::Region", "AZs" ] ]
+
+    DBPrivateSubnet2b:
+      Type: "AWS::EC2::Subnet"
+      Properties:
+        VpcId:
+          Ref: "VPC"
+        AvailabilityZone:
+          Fn::Sub:
+            - "${AWS::Region}${AZ}"
+            - AZ: !Select [ 1, !FindInMap [ "AZRegions", !Ref "AWS::Region", "AZs" ] ]
+        CidrBlock:
+          Fn::FindInMap:
+            - "SubnetConfig"
+            - "DBprivatesubnet2-b-mapping"
+            - "CIDR"
+        Tags:
+          -
+            Key: "Application"
+            Value:
+              Ref: "AWS::StackName"
+          -
+            Key: "Network"
+            Value: "Private"
+          -
+            Key: "Name"
+            Value: !Join
+              - ''
+              - - !Ref "VPCwordpress"
+                - '-private-'
+                - !Select [ 1, !FindInMap [ "AZRegions", !Ref "AWS::Region", "AZs" ] ]
+
+    InternetGateway:
+      Type: "AWS::EC2::InternetGateway"
+      Properties:
+        Tags:
+          -
+            Key: "Application"
+            Value:
+              Ref: "AWS::StackName"
+          -
+            Key: "Network"
+            Value: "Public"
+          -
+            Key: "Name"
+            Value: !Join
+              - ''
+              - - !Ref "VPCwordpress"
+              #- - !Ref "VPC"
+                - '-IGW'
+
+    InternetGatewayToInternet:
+      Type: "AWS::EC2::VPCGatewayAttachment"
+      Properties:
+        VpcId:
+          Ref: "VPC"
+        InternetGatewayId:
+          Ref: "InternetGateway"
+
+    PublicRouteTable:
+      Type: "AWS::EC2::RouteTable"
+      Properties:
+        VpcId:
+          Ref: "VPC"
+        Tags:
+          -
+            Key: "Application"
+            Value:
+              Ref: "AWS::StackName"
+          -
+            Key: "Network"
+            Value: "Public"
+          -
+            Key: "Name"
+            Value: !Join
+              - ''
+              - - !Ref "VPCwordpress"
+                - '-public-route-table'
+
+    PublicRoute:
+      Type: "AWS::EC2::Route"
+      DependsOn: "InternetGatewayToInternet"
+      Properties:
+        RouteTableId:
+          Ref: "PublicRouteTable"
+        DestinationCidrBlock: "0.0.0.0/0"
+        GatewayId:
+          Ref: "InternetGateway"
+
+    PublicSubnetRouteTableAssociation0:
+      Type: "AWS::EC2::SubnetRouteTableAssociation"
+      Properties:
+        SubnetId:
+          Ref: "PublicSubnet1a"
+        RouteTableId:
+          Ref: "PublicRouteTable"
+
+    PublicSubnetRouteTableAssociation1:
+      Type: "AWS::EC2::SubnetRouteTableAssociation"
+      Properties:
+        SubnetId:
+          Ref: "PublicSubnet2b"
+        RouteTableId:
+          Ref: "PublicRouteTable"
+
+    PublicNetworkAcl:
+      Type: "AWS::EC2::NetworkAcl"
+      Properties:
+        VpcId:
+          Ref: "VPC"
+        Tags:
+          -
+            Key: "Application"
+            Value:
+              Ref: "AWS::StackName"
+          -
+            Key: "Network"
+            Value: "Public"
+          -
+            Key: "Name"
+            Value: !Join
+              - ''
+              - - !Ref "VPCwordpress"
+                - '-public-nacl'
+
+    InboundHTTPPublicNetworkAclEntry:
+      Type: "AWS::EC2::NetworkAclEntry"
+      Properties:
+        NetworkAclId:
+          Ref: "PublicNetworkAcl"
+        RuleNumber: "100"
+        Protocol: "-1"
+        RuleAction: "allow"
+        Egress: "false"
+        CidrBlock: "0.0.0.0/0"
+        PortRange:
+          From: "0"
+          To: "65535"
+
+    OutboundPublicNetworkAclEntry:
+      Type: "AWS::EC2::NetworkAclEntry"
+      Properties:
+        NetworkAclId:
+          Ref: "PublicNetworkAcl"
+        RuleNumber: "100"
+        Protocol: "-1"
+        RuleAction: "allow"
+        Egress: "true"
+        CidrBlock: "0.0.0.0/0"
+        PortRange:
+          From: "0"
+          To: "65535"
+
+    PublicSubnetNetworkAclAssociation1a:
+      Type: "AWS::EC2::SubnetNetworkAclAssociation"
+      Properties:
+        SubnetId:
+          Ref: "PublicSubnet1a"
+        NetworkAclId:
+          Ref: "PublicNetworkAcl"
+
+    PublicSubnetNetworkAclAssociation2b:
+      Type: "AWS::EC2::SubnetNetworkAclAssociation"
+      Properties:
+        SubnetId:
+          Ref: "PublicSubnet2b"
+        NetworkAclId:
+          Ref: "PublicNetworkAcl"
+
+    ElasticIP1natA:
+      Type: "AWS::EC2::EIP"
+      Properties:
+        Domain: "vpc"
+
+    ElasticIP2natB:
+      Type: "AWS::EC2::EIP"
+      Properties:
+        Domain: "vpc"
+
+    NATGateway1a:
+      Type: "AWS::EC2::NatGateway"
+      Properties:
+        AllocationId:
+          Fn::GetAtt:
+            - "ElasticIP1natA"
+            - "AllocationId"
+        SubnetId:
+          Ref: "PublicSubnet1a"
+
+    NATGateway2b:
+      Type: "AWS::EC2::NatGateway"
+      Properties:
+        AllocationId:
+          Fn::GetAtt:
+            - "ElasticIP2natB"
+            - "AllocationId"
+        SubnetId:
+          Ref: "PublicSubnet2b"
+
+    PrivateRouteTable1a:
+      Type: "AWS::EC2::RouteTable"
+      Properties:
+        VpcId:
+          Ref: "VPC"
+        Tags:
+          -
+            Key: "Name"
+            Value: !Join
+              - ''
+              - - !Ref "VPCwordpress"
+                - '-private-route-table-0'
+
+    PrivateRouteTable2b:
+      Type: "AWS::EC2::RouteTable"
+      Properties:
+        VpcId:
+          Ref: "VPC"
+        Tags:
+          -
+            Key: "Name"
+            Value: !Join
+              - ''
+              - - !Ref "VPCwordpress"
+                - '-private-route-table-1'
+
+    PrivateRouteToInternet0:
+      Type: "AWS::EC2::Route"
+      Properties:
+        RouteTableId:
+          Ref: "PrivateRouteTable1a"
+        DestinationCidrBlock: "0.0.0.0/0"
+        NatGatewayId:
+          Ref: "NATGateway1a"
+
+    PrivateRouteToInternet1:
+      Type: "AWS::EC2::Route"
+      Properties:
+        RouteTableId:
+          Ref: "PrivateRouteTable2b"
+        DestinationCidrBlock: "0.0.0.0/0"
+        NatGatewayId:
+          Ref: "NATGateway2b"
+
+    PrivateSubnetRouteTableAssociation1a:
+      Type: "AWS::EC2::SubnetRouteTableAssociation"
+      Properties:
+        SubnetId:
+          Ref: "WordpressPrivateSubnet1a"
+        RouteTableId:
+          Ref: "PrivateRouteTable1a"
+
+    PrivateSubnetRouteTableAssociation2a:
+      Type: "AWS::EC2::SubnetRouteTableAssociation"
+      Properties:
+        SubnetId:
+          Ref: "DBPrivateSubnet1a"
+        RouteTableId:
+          Ref: "PrivateRouteTable1a"
+          
+    PrivateSubnetRouteTableAssociation1b:
+      Type: "AWS::EC2::SubnetRouteTableAssociation"
+      Properties:
+        SubnetId:
+          Ref: "WordpressPrivateSubnet2b"
+        RouteTableId:
+          Ref: "PrivateRouteTable2b"
+    PrivateSubnetRouteTableAssociation2b:
+      Type: "AWS::EC2::SubnetRouteTableAssociation"
+      Properties:
+        SubnetId:
+          Ref: "DBPrivateSubnet2b"
+        RouteTableId:
+          Ref: "PrivateRouteTable2b"
+
+    FileSystem:
+      Type: AWS::EFS::FileSystem
+      Properties:
+        Encrypted: true
+        FileSystemTags:
+          - Key: Name
+            Value: Wordpress-FS
+        PerformanceMode: generalPurpose
+        ThroughputMode: bursting
+
+    MountTargetSecurityGroup1a:
+      Type: AWS::EC2::SecurityGroup
+      Properties:
+        GroupDescription: FileSystem Security Group
+        VpcId: !Ref VPC
+        GroupName: Wordpress-FS-SecurityGroup
+        SecurityGroupIngress:
+        - IpProtocol: "tcp"
+          FromPort: 2049
+          ToPort: 2049
+          #CidrIp: 10.0.0.0/16
+          SourceSecurityGroupId:
+            !GetAtt
+            - FargateSecurityGroup
+            - GroupId
+
+    MountTarget1:
+      Type: AWS::EFS::MountTarget
+      Properties:
+        FileSystemId: !Ref FileSystem
+        SubnetId: !Ref WordpressPrivateSubnet1a
+        SecurityGroups:
+          - !Ref MountTargetSecurityGroup1a
+
+    MountTarget2:
+      Type: AWS::EFS::MountTarget
+      Properties:
+        FileSystemId: !Ref FileSystem
+        SubnetId: !Ref WordpressPrivateSubnet2b
+        SecurityGroups:
+          - !Ref MountTargetSecurityGroup1a
+
+    AccessPoint:
+      Type: AWS::EFS::AccessPoint
+      Properties:
+        FileSystemId: !Ref FileSystem
+        PosixUser:
+          Uid: "1000"
+          Gid: "1000"
+        RootDirectory:
+          CreationInfo:
+            OwnerGid: "1000"
+            OwnerUid: "1000"
+            Permissions: "0777"
+          Path: "/bitnami"
+
+    DBSubnetGroup:
+      Type: AWS::RDS::DBSubnetGroup
+      Properties:
+        DBSubnetGroupName: wordpressdbsubnetgroup
+        DBSubnetGroupDescription: wordpressp-db-subnet-group
+        SubnetIds:
+        - !Ref DBPrivateSubnet1a
+        - !Ref DBPrivateSubnet2b
+
+    DBSecurityGroup:
+      Type: AWS::EC2::SecurityGroup
+      Properties:
+        GroupDescription: RDS Security Group
+        VpcId: !Ref VPC
+        GroupName: Wordpress-RDS-SecurityGRoup
+        SecurityGroupIngress:
+        - IpProtocol: "tcp"
+          FromPort: 3306
+          ToPort: 3306
+          SourceSecurityGroupId:
+            !GetAtt
+            - FargateSecurityGroup
+            - GroupId
+
+    WordpressDB:
+      Type: AWS::RDS::DBInstance
+      Properties:
+        DBInstanceIdentifier: wordpress-db1
+        DBInstanceClass: db.t3.micro
+        DBName: wordpressdb
+        Engine: mysql
+        MasterUserPassword: admin1234567890
+        MasterUsername: admin
+        PubliclyAccessible: false
+        AllocatedStorage: 20
+        DBSubnetGroupName: !Ref DBSubnetGroup
+        VPCSecurityGroups:
+          - !Ref DBSecurityGroup
+
+    ALBSecurityGroup:
+      Type: AWS::EC2::SecurityGroup
+      Properties:
+        GroupDescription: ALB Security Group
+        VpcId: !Ref VPC
+        GroupName: Wordpress-ALB-SecurityGRoup
+        SecurityGroupIngress:
+        - IpProtocol: "tcp"
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+          
+    FargateSecurityGroup:
+      Type: AWS::EC2::SecurityGroup
+      Properties:
+        GroupDescription: Application Security Group
+        VpcId: !Ref VPC
+        GroupName: Application-FargateWordPress-SecurityGRoup
+        SecurityGroupIngress:
+        - IpProtocol: "tcp"
+          FromPort: 80
+          ToPort: 80
+          SourceSecurityGroupId:
+            !GetAtt
+            - ALBSecurityGroup
+            - GroupId
+        - IpProtocol: "tcp"
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 10.0.0.0/16
+        - IpProtocol: "tcp"
+          FromPort: 8080
+          ToPort: 8080
+          CidrIp: 10.0.0.0/16
+
+    WordPressALB:
+      Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+      Properties:
+        Name: wordpress-load-balancer
+        SecurityGroups: 
+        - !Ref ALBSecurityGroup
+        Subnets:
+          - !Ref PublicSubnet1a
+          - !Ref PublicSubnet2b
+
+    WordPressTargetGroup:
+      Type: AWS::ElasticLoadBalancingV2::TargetGroup
+      Properties:
+        Name: WordPressTargetGroupFargate
+        TargetType: ip
+        Port: 8080
+        Protocol: HTTP
+        HealthCheckPort: 8080
+        VpcId: !Ref VPC
+
+    WordPressALBListener:
+      Type: AWS::ElasticLoadBalancingV2::Listener
+      Properties:
+        LoadBalancerArn: !Ref WordPressALB
+        Protocol: "HTTP"
+        Port: 80
+        DefaultActions:
+          - Type: forward
+            ForwardConfig:
+              TargetGroups:
+                - TargetGroupArn: !Ref WordPressTargetGroup
+                  Weight: 1 
+
+    ECSTaskDefinition:
+        Type: "AWS::ECS::TaskDefinition"
+        Properties:
+            ContainerDefinitions:
+              -
+                Environment:
+                  -
+                      Name: "WORDPRESS_DATABASE_USER"
+                      Value: "admin"
+                  -   
+                      Name: "WORDPRESS_DATABASE_PASSWORD"
+                      Value: "admin1234567890"
+                  -
+                      Name: "ALLOW_EMPTY_PASSWORD"
+                      Value: "yes"
+                  -
+                      Name: "MARIADB_HOST"
+                      Value: !GetAtt WordpressDB.Endpoint.Address #!Sub "wp-db1.ctoup5f4vl3w.${AWS::Region.rds.amazonaws.com"
+                  -
+                      Name: "PHP_MEMORY_LIMIT"
+                      Value: "512M"
+                  -   
+                      Name: "enabled"
+                      Value: "false"
+                  -
+                      Name: "WORDPRESS_DATABASE_NAME"
+                      Value: "wordpressdb"
+                Essential: true
+                Image: "bitnami/wordpress"
+                MountPoints:
+                  -
+                    SourceVolume: "wordpress"
+                    ContainerPath: "/bitnami/wordpress"
+                Name: "wordpress"
+                PortMappings:
+                  -
+                    ContainerPort: 8080
+                    HostPort: 8080
+                    Protocol: "tcp"
+            Family: "WordpressOnFargate"
+            NetworkMode: "awsvpc"
+            Volumes:
+              -
+               Name: wordpress
+               #DockerVolumeConfiguration: null
+               EFSVolumeConfiguration:
+                    FileSystemId: !Ref FileSystem 
+                    RootDirectory: "/"
+                    TransitEncryption: "ENABLED"
+                    AuthorizationConfig:
+                        AccessPointId: !Ref AccessPoint #!GetAtt FileSystem. #"fsap-0e475d65c9d83387b"
+                        IAM: "DISABLED"
+            RequiresCompatibilities:
+              - "FARGATE"
+            Cpu: "1024"
+            Memory: "3072"
+            
+    ECSFargateCluster:
+        Type: "AWS::ECS::Cluster"
+        Properties:
+          CapacityProviders: 
+            -
+              "FARGATE"
+          ClusterName: "FargateCluster"
+          Tags: 
+            -
+              Key: "Name"
+              Value: !Join
+                - '-'
+                - - !Ref "VPCwordpress"
+        
+    ECSFargateClusterService:
+        Type: "AWS::ECS::Service"
+        Properties:
+          Cluster: !Ref ECSFargateCluster
+          DeploymentConfiguration: 
+            DeploymentCircuitBreaker: 
+              Enable: false
+              Rollback: false
+            MaximumPercent: 100
+            MinimumHealthyPercent: 0
+          DeploymentController: 
+            Type: "ECS"
+          DesiredCount: 2
+          #EnableECSManagedTags: Boolean
+          #EnableExecuteCommand: Boolean
+          HealthCheckGracePeriodSeconds: 0
+          LaunchType: "FARGATE"
+          LoadBalancers: 
+            - ContainerName: "wordpress"
+              ContainerPort: 8080
+              TargetGroupArn: !Ref WordPressTargetGroup
+          NetworkConfiguration:
+            AwsvpcConfiguration:
+              AssignPublicIp: "DISABLED"
+              SecurityGroups: 
+                - !Ref FargateSecurityGroup
+              Subnets:
+                - !Ref WordpressPrivateSubnet1a
+                - !Ref WordpressPrivateSubnet2b
+          SchedulingStrategy: "REPLICA"
+          ServiceName: "Wordpress-Service"
+          Tags:
+            -
+              Key: "Name"
+              Value: !Join
+                - '-'
+                - - !Ref "VPCwordpress"
+                  - !Ref ECSFargateCluster
+                  - "ECSFargateService"
+          TaskDefinition: !Ref ECSTaskDefinition
+    
+
+    
+  Outputs:
+    VPCId:
+      Description: "VPCId of VPC"
+      Value:
+        Ref: "VPC"
+      Export:
+        Name: !Sub "${AWS::Region}-${AWS::StackName}-VPC"
+
+    PublicSubnet1a:
+      Description: "SubnetId of public subnet 0"
+      Value:
+        Ref: "PublicSubnet1a"
+      Export:
+        Name: !Sub "${AWS::Region}-${AWS::StackName}-PublicSubnet1a"
+
+    PublicSubnet2b:
+      Description: "SubnetId of public subnet 1"
+      Value:
+        Ref: "PublicSubnet2b"
+      Export:
+        Name: !Sub "${AWS::Region}-${AWS::StackName}-PublicSubnet2b"
+
+    WordpressPrivateSubnet1a:
+      Description: "SubnetId of private subnet wordpress1a"
+
+      Value:
+        Ref: "WordpressPrivateSubnet1a"
+      Export:
+        Name: !Sub "${AWS::Region}-${AWS::StackName}-WordpressPrivateSubnet1a"
+
+    WordpressPrivateSubnet2b:
+      Description: "SubnetId of private subnet 1"
+      Value:
+        Ref: "WordpressPrivateSubnet2b"
+      Export:
+        Name: !Sub "${AWS::Region}-${AWS::StackName}-WordpressPrivateSubnet2b"
+
+    DBPrivateSubnet1a:
+      Description: "SubnetId of private subnet 1"
+      Value:
+        Ref: "DBPrivateSubnet1a"
+      Export:
+        Name: !Sub "${AWS::Region}-${AWS::StackName}-DBPrivateSubnet1a"
+        
+    DBPrivateSubnet2b:
+      Description: "SubnetId of private subnet 1"
+      Value:
+        Ref: "DBPrivateSubnet2b"
+      Export:
+        Name: !Sub "${AWS::Region}-${AWS::StackName}-DBPrivateSubnet2b"
+	
+    DefaultSecurityGroup:
+      Description: "DefaultSecurityGroup Id"
+      Value: !GetAtt VPC.DefaultSecurityGroup
+      Export:
+        Name: !Sub "${AWS::Region}-${AWS::StackName}-DefaultSecurityGroup"
+
+    EFSFSId:
+      Description: "ID of EFS FS"
+      Value:
+        Ref: "FileSystem"
+      Export:
+        Name: !Sub "${AWS::Region}-${AWS::StackName}-FileSystem"
+    RDSEndpointAddress:
+      Description: "RDS Endpoint Address"
+      Value: !GetAtt WordpressDB.Endpoint.Address
+      Export:
+        Name: !Sub "${AWS::Region}-${AWS::StackName}-WordpressDB"
+
+    EFSAccessPoint:
+      Description: "EFS Access Point ID"
+      Value: !GetAtt AccessPoint.AccessPointId
+      Export:
+        Name: !Sub "${AWS::Region}-${AWS::StackName}-AccessPoint"
+        
+    ALBSecurityGroup:
+      Description: "ALB Security Group"
+      Value: !GetAtt ALBSecurityGroup.GroupId
+      Export:
+        Name: !Sub "${AWS::Region}-${AWS::StackName}-ALBSecurityGroup"
+    
+    WordPressTargetGroup:
+      Description: "ALB Target Group"
+      Value:
+        Ref: "WordPressTargetGroup"
+      Export:
+        Name: !Sub "${AWS::Region}-${AWS::StackName}-ALBTargetGroup"
+        
+#Resources names and DBName must be alphanumeric, special characters are not allowed
