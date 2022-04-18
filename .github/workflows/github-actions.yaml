@@ -2,7 +2,6 @@
 #  deploy:
 #    name: Deploy to AWS
 #    runs-on:
-
 name: 'Deploy to AWS CloudFormation'
 
 on: 
