@@ -1,4 +1,4 @@
-name: 'Deploy to AWS CloudFormation'
+name: "Deploy to AWS CloudFormation"
 
 on: 
    push:
@@ -12,9 +12,9 @@ on:
   workflow_dispatch:
     inputs:
       region:
-        description: 'AWS Region to deploy to'
+        description: "AWS Region to deploy to"
         required: true
-        default: 'us-east-1'
+        default: "us-east-1"
 
 
 jobs:
