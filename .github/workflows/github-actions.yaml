@@ -5,13 +5,13 @@ on:
      branches: [ master ]
    pull_request:
      branches: [ master ]
-
-  workflow_dispatch:
-    inputs:
-      region:
-        description: "AWS Region to deploy to"
-        required: true
-        default: "us-east-1"
+#
+#  workflow_dispatch:
+#    inputs:
+#      region:
+#        description: "AWS Region to deploy to"
+#        required: true
+#        default: "us-east-1"
 
 
 jobs:
