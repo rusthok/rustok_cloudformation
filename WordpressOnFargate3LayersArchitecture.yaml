@@ -724,7 +724,7 @@
             MinimumHealthyPercent: 0
           DeploymentController: 
             Type: "ECS"
-          DesiredCount: 2
+          DesiredCount: 3
           #EnableECSManagedTags: Boolean
           #EnableExecuteCommand: Boolean
           HealthCheckGracePeriodSeconds: 0
