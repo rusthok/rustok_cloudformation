@@ -9,7 +9,7 @@
       Default: "Wordpress on Fargate"
       #prueba v2
 #admin username is ‘user’ and the password is ‘bitnami’. 
-  #
+  ####
   Mappings:
     SubnetConfig:
       VPC-mapping:
